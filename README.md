@@ -16,9 +16,9 @@ The core itself, personalAlerter.py, doesn't do anything on it's own, but if you
 the [template](plugins/pluginTemplate) plugin layout, you can easily add cusom alerts!  
 Inside this repo a [ping plugin](plugins/pingPlugin) is available to show how a simple ping to check if alive plugin works.
 
-A subreddit watcher will soon follow so you will be able to have the same functionality of 
+~~A subreddit watcher will soon follow so you will be able to have the same functionality of 
 [rssTelegramBot2.0](https://github.com/gabrieleancora/rssTelegramBot2.0) (also called Reddit manga alert bot)
-in a new, more complete and flexible, software.  
+in a new, more complete and flexible, software.~~ I didn't consider the implications of receiving messages, so for now this part is in pause and I'll mantain more actively the rssTelegramBot2.0
 
 Future alert-type of programs will be developed as plugins for this software.
 
