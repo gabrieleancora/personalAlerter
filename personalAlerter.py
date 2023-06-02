@@ -12,24 +12,31 @@ DEBUG = False
 TELEGRAM_BOT_TOKEN = ''
 TELEGRAM_CHANNEL_ID = ''
 REFRESH_TIME_MINUTES = 0
-
+LASTRUNTIME = ''
 
 def mainLoop():
     BACKOFF_RETRIES = 0
+
+    # Gets last runtime if available and replaces default value. Prints it for debug purposes
     lastRuntime = datetime.fromisoformat('2000-01-01T00:00:00+00:00')
+    if LASTRUNTIME != '':
+        lastRuntime = datetime.fromisoformat(LASTRUNTIME)
+    if DEBUG:
+        consolePrint('lastruntime: ' + str(lastRuntime))
+
     while True:
         try:
             consolePrint("Starting main loop...")
-
             # Alerts the user if the bot wasn't online for any number of loops
             if BACKOFF_RETRIES > 0:
                 consolePrint(f"Sending a message to the Telegram channel to inform that the bot is back online.\nIt was offline for {BACKOFF_RETRIES} loops.")
                 send_tg_message(f"The bot couldn't perfrom any network related checks or send messages using Telegram for {BACKOFF_RETRIES} times because of connection problems.")
                 BACKOFF_RETRIES = 0
+
             if os.path.isfile('pluginList.cfg'):
                 pluginList = []
-                with open('pluginList.cfg', 'r') as f:
-                    fileLines = f.readlines()
+                with open('pluginList.cfg', 'r') as pluginListFile:
+                    fileLines = pluginListFile.readlines()
                     # Remove comments and empty lines
                     pluginLines = [x for x in fileLines if not x.startswith('#')]
                     pluginLines = [x.strip() for x in pluginLines if x.strip()]
@@ -76,11 +83,20 @@ def mainLoop():
                     response = pluginLib.pluginMain(plugin[2], richResponse, lastRuntime)
                     del pluginLib
                     if richResponse == True:
-                        send_tg_message(response, True)
+                        for msg in response:
+                            send_tg_message(msg, True)
                     else:
-                        send_tg_message(response)
+                        for msg in response:
+                            send_tg_message(msg)
 
             lastRuntime = datetime.now(timezone.utc)
+
+            # Saves last runtime
+            timeConfig = configparser.ConfigParser()
+            timeConfig.read('config.ini')
+            timeConfig['Main']['LASTRUNTIME'] = lastRuntime.isoformat()
+            with open('config.ini', 'w') as cfgWriter:
+                timeConfig.write(cfgWriter)
             sleep(REFRESH_TIME_MINUTES * 60)
 
         # Network related execptions and file not found execptions doesn't stop the loop from running since they
@@ -146,7 +162,9 @@ if __name__ == "__main__":
         config.read('config.ini')
         TELEGRAM_BOT_TOKEN = config['Telegram']['TG_BOT_TOKEN']
         TELEGRAM_CHANNEL_ID = config['Telegram']['TG_CHANNEL_ID']
-        REFRESH_TIME_MINUTES = config.getint('Main', 'REFRESH_TIME_MINUTES')
+        mainConfig = config['Main']
+        LASTRUNTIME = mainConfig.get('LASTRUNTIME', '')
+        REFRESH_TIME_MINUTES = mainConfig.getint('REFRESH_TIME_MINUTES')
         if TELEGRAM_BOT_TOKEN == "" or TELEGRAM_CHANNEL_ID == "":
             consolePrint("Please fill all the required informations to make the bot work!", "error")
             exit(1)
@@ -154,6 +172,13 @@ if __name__ == "__main__":
             consolePrint("Please create a pluginList.cfg file contaning the list of plugins to be executed! See the documentation on github for more info.", "error")
             exit(1)
         consolePrint("Program initialized, starting the main loop.", "header")
+
+        # Saves last runtime
+        newLastruntime = datetime.now(timezone.utc).isoformat()
+        config['Main']['LASTRUNTIME'] = newLastruntime
+        with open('config.ini', 'w') as cfgWriter:
+            config.write(cfgWriter)
+
         # Sending a message to the Telegram channel to inform that the bot has started.
         # In case of no connection, the bot will start anyway without sending the message.
         try:
@@ -164,6 +189,7 @@ if __name__ == "__main__":
         mainProcess = Process(target=mainLoop, name="Main loop process")
         mainProcess.start()
         consolePrint(f"The bot will check for new modules once every run.")
+
         # The "main" loop
         while(True):
             inputCommand = input()
@@ -175,7 +201,7 @@ if __name__ == "__main__":
             elif inputCommand == "status":
                 consolePrint(f"The main process is{('' if mainProcess.is_alive() else ' not')} alive.\nThe current exit code is {mainProcess.exitcode}\nDebug mode is {'enabled' if DEBUG else 'disabled'}.")
             elif inputCommand == "debug":
-                DEBUG = not(DEBUG)
+                DEBUG = not DEBUG
                 consolePrint(f"Toggled debug mode. Debug mode is now {'Active' if DEBUG else 'Deactivated'}.")
             elif inputCommand == "help":
                 consolePrint("Available commands:\nstatus = prints main loop status\ndebug = toggles debug mode\nexit = exit the program")

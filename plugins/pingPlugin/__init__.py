@@ -24,17 +24,17 @@ def pluginMain(host : str, longReturnMessage : bool, lastRuntime : datetime.date
         trueHost = host
     response = os.system('ping -c 1 ' + trueHost + ' > /dev/null 2>&1')
 
-    returnMessage = ""
+    returnMessage = []
     if response == 0:
         if longReturnMessage:
-            returnMessage = f"The host {trueHost} is up!"
+            returnMessage.append(f"The host {trueHost} is up!")
         else:
-            returnMessage = "0"
+            returnMessage.append("0")
     elif response != 0:
         if longReturnMessage:
-            returnMessage = f"The host {trueHost} is down!"
+            returnMessage.append(f"The host {trueHost} is down!")
         else:
-            returnMessage = "1"
+            returnMessage.append("1")
     return returnMessage
 
 
