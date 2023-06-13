@@ -1,2 +1,4 @@
 config.ini
 .idea/
+!/plugins/pingPlugin/pingPlugin.ini
+!/pluginList.cfg
