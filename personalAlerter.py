@@ -12,17 +12,18 @@ DEBUG = False
 TELEGRAM_BOT_TOKEN = ''
 TELEGRAM_CHANNEL_ID = ''
 REFRESH_TIME_MINUTES = 0
-LASTRUNTIME = ''
+LASTRUNTIMECFG = ''
+LATESTRUNTIME = ''
 
 def mainLoop():
     BACKOFF_RETRIES = 0
 
     # Gets last runtime if available and replaces default value. Prints it for debug purposes
-    lastRuntime = datetime.fromisoformat('2000-01-01T00:00:00+00:00')
-    if LASTRUNTIME != '':
-        lastRuntime = datetime.fromisoformat(LASTRUNTIME)
+    LATESTRUNTIME = datetime.fromisoformat('2000-01-01T00:00:00+00:00')
+    if LASTRUNTIMECFG != '':
+        LATESTRUNTIME = datetime.fromisoformat(LASTRUNTIMECFG)
     if DEBUG:
-        consolePrint('lastruntime: ' + str(lastRuntime))
+        consolePrint('lastruntime: ' + str(LATESTRUNTIME))
 
     while True:
         try:
@@ -80,7 +81,7 @@ def mainLoop():
 
                     # Loads the plugin and executes it using the args passed from the file cfg
                     pluginLib = importlib.import_module(pluginFullName, "plugins")
-                    response = pluginLib.pluginMain(plugin[2], richResponse, lastRuntime)
+                    response = pluginLib.pluginMain(plugin[2], richResponse, LATESTRUNTIME)
                     del pluginLib
                     if richResponse == True:
                         for msg in response:
@@ -89,12 +90,12 @@ def mainLoop():
                         for msg in response:
                             send_tg_message(msg)
 
-            lastRuntime = datetime.now(timezone.utc)
+            LATESTRUNTIME = datetime.now(timezone.utc)
 
             # Saves last runtime
             timeConfig = configparser.ConfigParser()
             timeConfig.read('config.ini')
-            timeConfig['Main']['LASTRUNTIME'] = lastRuntime.isoformat()
+            timeConfig['Main']['LASTRUNTIME'] = LATESTRUNTIME.isoformat()
             with open('config.ini', 'w') as cfgWriter:
                 timeConfig.write(cfgWriter)
             sleep(REFRESH_TIME_MINUTES * 60)
@@ -163,7 +164,7 @@ if __name__ == "__main__":
         TELEGRAM_BOT_TOKEN = config['Telegram']['TG_BOT_TOKEN']
         TELEGRAM_CHANNEL_ID = config['Telegram']['TG_CHANNEL_ID']
         mainConfig = config['Main']
-        LASTRUNTIME = mainConfig.get('LASTRUNTIME', '')
+        LASTRUNTIMECFG = mainConfig.get('LASTRUNTIME', '')
         REFRESH_TIME_MINUTES = mainConfig.getint('REFRESH_TIME_MINUTES')
         if TELEGRAM_BOT_TOKEN == "" or TELEGRAM_CHANNEL_ID == "":
             consolePrint("Please fill all the required informations to make the bot work!", "error")
@@ -203,8 +204,10 @@ if __name__ == "__main__":
             elif inputCommand == "debug":
                 DEBUG = not DEBUG
                 consolePrint(f"Toggled debug mode. Debug mode is now {'Active' if DEBUG else 'Deactivated'}.")
+            elif inputCommand in ['lastrun','lastruntime']:
+                consolePrint(f'Last successful runtime: {LATESTRUNTIME}')
             elif inputCommand == "help":
-                consolePrint("Available commands:\nstatus = prints main loop status\ndebug = toggles debug mode\nexit = exit the program")
+                consolePrint("Available commands:\nstatus = prints main loop status\nlastrun = prints the latest successfull run of the alerter\ndebug = toggles debug mode\nexit = exit the program")
 
     else:
         consolePrint("Error: the file config.ini wasn't found. Please insert all the required fields and rerun the program.", "error")
